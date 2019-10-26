@@ -7,7 +7,10 @@ from urllib.parse import urlparse, parse_qs
 from io import BytesIO
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import logging
-
+import threading
+from socketserver import ThreadingMixIn
+#https://stackoverflow.com/questions/14088294/multithreaded-web-server-in-python
+USE_HTTPS = True
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -93,14 +96,25 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(response)
                 logger.info("Sending response ... %s"% self.path)                                 
             
-        
-httpd = HTTPServer(('localhost', 8000), SimpleHTTPRequestHandler)
 
-httpd.socket = ssl.wrap_socket (httpd.socket, 
-        keyfile="keys/key.pem", 
-        certfile='keys/cert.pem', server_side=True)
+class ThreadingSimpleServer(ThreadingMixIn, HTTPServer):
+    pass
 
-httpd.serve_forever()
 
+def run():
+    server = ThreadingSimpleServer(('0.0.0.0', 8000), SimpleHTTPRequestHandler)
+    if USE_HTTPS:
+        import ssl
+        server.socket = ssl.wrap_socket(server.socket,
+                                        keyfile='keys/key.pem',
+                                        certfile='keys/cert.pem',
+                                        server_side=True)
+    server.serve_forever()
+
+
+if __name__ == '__main__':
+    run()
+
+                
         
 
